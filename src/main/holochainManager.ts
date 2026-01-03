@@ -1,6 +1,5 @@
 /* eslint-disable import/no-named-as-default-member */
 /* eslint-disable @typescript-eslint/no-var-requires */
-import getPort from 'get-port';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import * as childProcess from 'child_process';
@@ -13,6 +12,10 @@ import { app } from 'electron';
 
 export type AdminPort = number;
 export type AppPort = number;
+
+// Fixed ports for extension discovery - no dynamic port allocation
+const FIXED_ADMIN_PORT = 21211;
+const FIXED_APP_PORT = 21212;
 
 export class HolochainManager {
   processHandle: childProcess.ChildProcessWithoutNullStreams;
@@ -60,9 +63,7 @@ export class HolochainManager {
     rustLog?: string,
     wasmLog?: string
   ): Promise<HolochainManager> {
-    const adminPort = process.env.ADMIN_PORT
-      ? parseInt(process.env.ADMIN_PORT, 10)
-      : await getPort();
+    const adminPort = FIXED_ADMIN_PORT;
 
     let conductorConfig;
 
@@ -79,7 +80,8 @@ export class HolochainManager {
     conductorConfig.keystore.connection_url = lairUrl;
     conductorConfig.admin_interfaces = [
       {
-        driver: { type: 'websocket', port: adminPort, allowed_origins: 'kangaroo' },
+        // Allow all origins for browser extension access
+        driver: { type: 'websocket', port: adminPort, allowed_origins: '*' },
       },
     ];
 
@@ -152,11 +154,14 @@ export class HolochainManager {
           const installedApps = await adminWebsocket.listApps({});
           const appInterfaces = await adminWebsocket.listAppInterfaces();
           console.log('Got appInterfaces: ', appInterfaces);
-          let appPort;
-          if (appInterfaces.length > 0) {
-            appPort = appInterfaces[0].port;
+          let appPort: number;
+          // Check if our fixed port interface already exists
+          const existingInterface = appInterfaces.find((iface) => iface.port === FIXED_APP_PORT);
+          if (existingInterface) {
+            appPort = existingInterface.port;
           } else {
             const attachAppInterfaceResponse = await adminWebsocket.attachAppInterface({
+              port: FIXED_APP_PORT,
               allowed_origins: app.isPackaged ? 'webhapp://webhappwindow' : '*',
             });
             console.log('Attached app interface port: ', attachAppInterfaceResponse);
