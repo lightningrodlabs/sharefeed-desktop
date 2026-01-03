@@ -162,6 +162,22 @@ export class HolochainManager {
             console.log('Attached app interface port: ', attachAppInterfaceResponse);
             appPort = attachAppInterfaceResponse.port;
           }
+
+          // Write ports to JSON file for external apps (e.g., browser extension) to discover
+          const portInfo = {
+            adminPort,
+            appPort,
+            appId: HAPP_APP_ID,
+            timestamp: Date.now(),
+          };
+          const portFilePath = kangarooFs.conductorPortsFilePath;
+          try {
+            fs.writeFileSync(portFilePath, JSON.stringify(portInfo, null, 2));
+            console.log('Wrote conductor ports to:', portFilePath);
+          } catch (e) {
+            console.error('Failed to write conductor ports file:', e);
+          }
+
           resolve(
             new HolochainManager(
               conductorHandle,

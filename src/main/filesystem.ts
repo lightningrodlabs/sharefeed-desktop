@@ -79,6 +79,10 @@ export class KangarooFileSystem {
     return path.join(this.conductorDir, 'conductor-config.yaml');
   }
 
+  get conductorPortsFilePath() {
+    return path.join(this.profileDataDir, 'conductor-ports.json');
+  }
+
   keystoreInitialized = () => {
     return fs.existsSync(path.join(this.keystoreDir, 'lair-keystore-config.yaml'));
   };
