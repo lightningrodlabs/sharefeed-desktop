@@ -19,7 +19,7 @@ async function generateIcons() {
   const icnsOutPath = path.join(buildDir, 'icon.icns');
 
   if (!fs.existsSync(pngPath)) {
-    console.warn("WARNING: No icon.png found. If you're using the systray option, an icon.png (256x256 pixel) is required to be provided at the root level of your webhapp's UI assets.");
+    console.warn("WARNING: No icon.png found. If you're using the systray option, an icon.png (at least 256x256 pixel) is required to be provided at the root level of your webhapp's UI assets.");
     return;
   }
 
@@ -51,7 +51,7 @@ async function generateIcons() {
   if (!fs.existsSync(iconsDir)) {
     fs.mkdirSync(iconsDir);
   }
-  systrayIcon.write(path.join(iconsDir, '32x32@2.png'));
+  systrayIcon.write(path.join(iconsDir, '32x32@2x.png'));
 
   // Generate the icon for OS notifications
   console.log('Generating notifications icon');

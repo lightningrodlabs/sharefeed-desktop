@@ -1,18 +1,21 @@
+/* eslint-disable import/no-named-as-default-member */
 /* eslint-disable @typescript-eslint/no-var-requires */
-import getPort from 'get-port';
 import fs from 'fs';
+import yaml from 'js-yaml';
 import * as childProcess from 'child_process';
 import { HolochainVersion, KangarooEmitter } from './eventEmitter';
 import split from 'split';
 import { AdminWebsocket, AppAuthenticationToken, AppInfo } from '@holochain/client';
 import { KangarooFileSystem } from './filesystem';
-import { HAPP_APP_ID, HAPP_PATH } from './const';
-
-import { defaultConductorConfig } from '@lightningrodlabs/we-rust-utils';
+import { CONDUCTOR_CONFIG_TEMPLATE, HAPP_APP_ID, HAPP_PATH, KANGAROO_CONFIG } from './const';
 import { app } from 'electron';
 
 export type AdminPort = number;
 export type AppPort = number;
+
+// Fixed ports for extension discovery - no dynamic port allocation
+const FIXED_ADMIN_PORT = 21211;
+const FIXED_APP_PORT = 21212;
 
 export class HolochainManager {
   processHandle: childProcess.ChildProcessWithoutNullStreams;
@@ -55,30 +58,46 @@ export class HolochainManager {
     configPath: string,
     lairUrl: string,
     bootstrapUrl: string,
-    signalingUrl: string,
+    signalUrl: string,
     iceUrls?: string[],
     rustLog?: string,
     wasmLog?: string
   ): Promise<HolochainManager> {
-    const adminPort = process.env.ADMIN_PORT
-      ? parseInt(process.env.ADMIN_PORT, 10)
-      : await getPort();
+    const adminPort = FIXED_ADMIN_PORT;
 
-    const conductorConfig = defaultConductorConfig(
-      adminPort,
-      rootDir,
-      lairUrl,
-      bootstrapUrl,
-      signalingUrl,
-      'kangaroo',
-      false,
-      iceUrls,
-      undefined
-    );
+    let conductorConfig;
+
+    try {
+      conductorConfig = yaml.load(fs.readFileSync(configPath));
+    } catch (e) {
+      console.warn(
+        'Failed to read existing conductor-config.yaml file. Overwriting it with a default one.'
+      );
+      conductorConfig = CONDUCTOR_CONFIG_TEMPLATE;
+    }
+
+    conductorConfig.data_root_path = rootDir;
+    conductorConfig.keystore.connection_url = lairUrl;
+    conductorConfig.admin_interfaces = [
+      {
+        // Allow all origins for browser extension access
+        driver: { type: 'websocket', port: adminPort, allowed_origins: '*' },
+      },
+    ];
+
+    // network parameters
+    conductorConfig.network.bootstrap_url = bootstrapUrl
+      ? bootstrapUrl
+      : KANGAROO_CONFIG.bootstrapUrl;
+    conductorConfig.network.signal_url = signalUrl ? signalUrl : KANGAROO_CONFIG.signalUrl;
+    const iceConfig = iceUrls
+      ? iceUrls.map((url) => ({ urls: [url] }))
+      : KANGAROO_CONFIG.iceUrls.map((url) => ({ urls: [url] }));
+    conductorConfig.network.webrtc_config = { iceServers: iceConfig };
 
     console.log('Writing conductor-config.yaml...');
 
-    fs.writeFileSync(configPath, conductorConfig);
+    fs.writeFileSync(configPath, yaml.dump(conductorConfig));
 
     const conductorHandle = childProcess.spawn(binary, ['-c', configPath, '-p'], {
       env: {
@@ -135,16 +154,35 @@ export class HolochainManager {
           const installedApps = await adminWebsocket.listApps({});
           const appInterfaces = await adminWebsocket.listAppInterfaces();
           console.log('Got appInterfaces: ', appInterfaces);
-          let appPort;
-          if (appInterfaces.length > 0) {
-            appPort = appInterfaces[0].port;
+          let appPort: number;
+          // Check if our fixed port interface already exists
+          const existingInterface = appInterfaces.find((iface) => iface.port === FIXED_APP_PORT);
+          if (existingInterface) {
+            appPort = existingInterface.port;
           } else {
             const attachAppInterfaceResponse = await adminWebsocket.attachAppInterface({
+              port: FIXED_APP_PORT,
               allowed_origins: app.isPackaged ? 'webhapp://webhappwindow' : '*',
             });
             console.log('Attached app interface port: ', attachAppInterfaceResponse);
             appPort = attachAppInterfaceResponse.port;
           }
+
+          // Write ports to JSON file for external apps (e.g., browser extension) to discover
+          const portInfo = {
+            adminPort,
+            appPort,
+            appId: HAPP_APP_ID,
+            timestamp: Date.now(),
+          };
+          const portFilePath = kangarooFs.conductorPortsFilePath;
+          try {
+            fs.writeFileSync(portFilePath, JSON.stringify(portInfo, null, 2));
+            console.log('Wrote conductor ports to:', portFilePath);
+          } catch (e) {
+            console.error('Failed to write conductor ports file:', e);
+          }
+
           resolve(
             new HolochainManager(
               conductorHandle,
@@ -170,10 +208,13 @@ export class HolochainManager {
     const appInfo = await this.adminWebsocket.installApp({
       agent_key: pubKey,
       installed_app_id: HAPP_APP_ID,
-      path: HAPP_PATH,
       network_seed: networkSeed,
+      source: {
+        type: 'path',
+        value: HAPP_PATH,
+      },
     });
-    if (appInfo.status !== 'awaiting_memproofs') {
+    if (appInfo.status.type !== 'awaiting_memproofs') {
       try {
         await this.adminWebsocket.enableApp({
           installed_app_id: appInfo.installed_app_id,
