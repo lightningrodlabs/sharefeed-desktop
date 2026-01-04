@@ -9,11 +9,10 @@ export default defineConfig({
   fallbackToIndexHtml: true,
   autoUpdates: true,
   systray: true,
-  // Uncomment and update when first release is published:
-  // webhapp: {
-  //   url: 'https://github.com/lightningrodlabs/sharefeed/releases/download/happ-v0.1.0/sharefeed.webhapp',
-  //   sha256: '<sha256-hash-here>',
-  // },
+  webhapp: {
+    url: 'https://github.com/lightningrodlabs/sharefeed/releases/download/happ-v0.1.0/sharefeed.webhapp',
+    sha256: '0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5',
+  },
   passwordMode: 'password-optional',
   bootstrapUrl: 'https://dev-test-bootstrap2.holochain.org/',
   signalUrl: 'wss://dev-test-bootstrap2.holochain.org/',
