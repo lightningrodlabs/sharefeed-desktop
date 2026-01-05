@@ -8,7 +8,6 @@ import split from 'split';
 import { AdminWebsocket, AppAuthenticationToken, AppInfo } from '@holochain/client';
 import { KangarooFileSystem } from './filesystem';
 import { CONDUCTOR_CONFIG_TEMPLATE, HAPP_APP_ID, HAPP_PATH, KANGAROO_CONFIG } from './const';
-import { app } from 'electron';
 
 export type AdminPort = number;
 export type AppPort = number;
