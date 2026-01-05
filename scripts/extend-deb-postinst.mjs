@@ -8,12 +8,13 @@ import fs from 'fs';
 import crypto from 'crypto';
 import child_process from 'child_process';
 
+const arch = process.argv[2] || 'amd64';
 const electronBuilderYaml = yaml.load(fs.readFileSync('electron-builder.yml', 'utf-8'));
 const packageJson = JSON.parse(fs.readFileSync('package.json'));
 const appId = electronBuilderYaml.appId;
 const productName = electronBuilderYaml.productName;
 const appVersion = packageJson.version;
-const debFileName = `${appId}_${appVersion}_amd64.deb`;
+const debFileName = `${appId}_${appVersion}_${arch}.deb`;
 const debFilePath = `dist/${debFileName}`;
 
 const fileBytesBefore = fs.readFileSync(debFilePath);
