@@ -92,7 +92,8 @@ const hasher = crypto.createHash('sha512');
 hasher.update(fileBytes);
 const sha512 = hasher.digest('base64');
 
-const latestYaml = yaml.load(fs.readFileSync('dist/latest-linux.yml'));
+const latestYamlFileName = arch === 'amd64' ? 'latest-linux.yml' : `latest-linux-${arch}.yml`;
+const latestYaml = yaml.load(fs.readFileSync(`dist/${latestYamlFileName}`));
 
 console.log('latestYaml before modification:\n', latestYaml);
 
@@ -108,4 +109,4 @@ latestYaml.files = files;
 console.log('\n\nsha512: ', sha512);
 console.log('\n\nlatestYaml after modification: ', latestYaml);
 
-fs.writeFileSync('latest-linux.yml', yaml.dump(latestYaml, { lineWidth: -1 }), 'utf-8');
+fs.writeFileSync(latestYamlFileName, yaml.dump(latestYaml, { lineWidth: -1 }), 'utf-8');
