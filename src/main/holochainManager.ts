@@ -162,7 +162,7 @@ export class HolochainManager {
           } else {
             const attachAppInterfaceResponse = await adminWebsocket.attachAppInterface({
               port: FIXED_APP_PORT,
-              allowed_origins: app.isPackaged ? 'webhapp://webhappwindow' : '*',
+              allowed_origins: '*', // Allow all origins (localhost only, extension + UI need access)
             });
             console.log('Attached app interface port: ', attachAppInterfaceResponse);
             appPort = attachAppInterfaceResponse.port;
