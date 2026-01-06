@@ -1,0 +1,29 @@
+name: Test Windows Signing
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  test-sign:
+    runs-on: windows-latest
+    steps:
+      - name: Create test executable
+        run: |
+          # Create a simple test exe (just copies cmd.exe)
+          copy C:\Windows\System32\cmd.exe test.exe
+
+      - name: Sign test executable
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}
+          files-folder-filter: exe
+
+      - name: Verify signature
+        run: |
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" verify /pa /v test.exe

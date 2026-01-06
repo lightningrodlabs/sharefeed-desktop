@@ -11,7 +11,7 @@ export default defineConfig({
   systray: true,
   webhapp: {
     url: 'https://github.com/lightningrodlabs/sharefeed/releases/download/happ-v0.1.0/sharefeed.webhapp',
-    sha256: '76b6573c2ad716a35f61ed715f7cf796d3fb327ee1a07a2998b139b704dd4f25',
+    sha256: '0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5',
   },
   passwordMode: 'password-optional',
   bootstrapUrl: 'https://dev-test-bootstrap2.holochain.org/',
