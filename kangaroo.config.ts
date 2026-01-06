@@ -3,7 +3,7 @@ import { defineConfig } from './src/main/defineConfig';
 export default defineConfig({
   appId: 'org.lightningrodlabs.sharefeed',
   productName: 'ShareFeed',
-  version: '0.1.0',
+  version: '0.1.1',
   macOSCodeSigning: true,
   windowsEVCodeSigning: true,
   fallbackToIndexHtml: true,
